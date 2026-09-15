@@ -24,13 +24,13 @@ export default function HeroSection() {
             
                 
                 
-                <span className={styles.gradientText}> AI-Powered <br /> Digital Innovation in <br /> India & South Africa</span>
+                <span className={styles.gradientText}> AI-Powered <br /> Digital Innovation in <br />South Africa & India </span>
               </h1>
             </div>
 
             <div className={styles.anim3}>
               <p className={styles.subtext}>
-               We are a premium technology and digital solutions company engineering high performance digital ecosystems for modern businesses. From custom websites, full stack applications, and bespoke software solutions to SEO, digital marketing, AI & ML, automation, and cloud technologies, we deliver end to end solutions built around innovation, performance, and scalability. With a technology driven approach and global perspective, we transform complex business challenges into intelligent, scalable, and future ready digital experiences, with a strong presence through our branches in India and South Africa.
+               We are a premium technology and digital solutions company engineering high performance digital ecosystems for modern businesses. From custom websites, full stack applications, and bespoke software solutions to SEO, digital marketing, AI & ML, automation, and cloud technologies, we deliver end to end solutions built around innovation, performance, and scalability. With a technology driven approach and global perspective, we transform complex business challenges into intelligent, scalable, and future ready digital experiences, with a strong presence through our branches in South Africa & India.
          </p>
             </div>
 
