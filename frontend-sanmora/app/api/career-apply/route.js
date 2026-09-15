@@ -1,6 +1,107 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+async function sendCareerEmail({ from, to, subject, html, attachments }) {
+  // 1. If RESEND_API_KEY is configured, send via Resend HTTP API
+  if (process.env.RESEND_API_KEY) {
+    console.log("[Mailer] Sending career email via Resend HTTP API...");
+    let resendAttachments = [];
+    if (attachments && attachments.length > 0) {
+      resendAttachments = attachments.map(att => ({
+        filename: att.filename,
+        content: att.content.toString("base64")
+      }));
+    }
+    let sender = process.env.RESEND_FROM;
+    if (!sender) {
+      const match = from.match(/^"([^"]+)"/);
+      const namePrefix = match ? `"${match[1]}" ` : "";
+      sender = `${namePrefix}<onboarding@resend.dev>`;
+    }
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
+      },
+      body: JSON.stringify({
+        from: sender,
+        to: typeof to === "string" ? [to] : to,
+        subject,
+        html,
+        attachments: resendAttachments.length > 0 ? resendAttachments : undefined
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || `Resend API returned status ${res.status}`);
+    }
+    return data;
+  }
+
+  // 2. If SENDGRID_API_KEY is configured, send via SendGrid HTTP API
+  if (process.env.SENDGRID_API_KEY) {
+    console.log("[Mailer] Sending career email via SendGrid HTTP API...");
+    let sendgridAttachments = [];
+    if (attachments && attachments.length > 0) {
+      sendgridAttachments = attachments.map(att => ({
+        content: att.content.toString("base64"),
+        filename: att.filename,
+        type: att.contentType || "application/octet-stream",
+        disposition: "attachment"
+      }));
+    }
+    let senderEmail = from;
+    if (from.includes("<")) {
+      const match = from.match(/<([^>]+)>/);
+      if (match) senderEmail = match[1].trim();
+    }
+    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.SENDGRID_API_KEY}`
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: (typeof to === "string" ? [to] : to).map(e => ({ email: e })) }],
+        from: { email: senderEmail },
+        subject,
+        content: [{ type: "text/html", value: html }],
+        attachments: sendgridAttachments.length > 0 ? sendgridAttachments : undefined
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`SendGrid API returned status ${res.status}: ${errText}`);
+    }
+    return { success: true };
+  }
+
+  // 3. Fallback to Nodemailer SMTP
+  const host = process.env.EMAIL_HOST || "smtp.hostinger.com";
+  const port = parseInt(process.env.EMAIL_PORT) || 465;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+
+  if (!user || !pass) {
+    console.warn("[Mailer Warning] EMAIL_USER or EMAIL_PASS not configured in environment. Skipping email delivery.");
+    return { success: true, bypassed: true };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: host,
+    port: port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
+  });
+
+  return await transporter.sendMail({ from, to, subject, html, attachments });
+}
+
 export async function POST(request) {
   try {
     const formData = await request.formData();
@@ -64,66 +165,29 @@ export async function POST(request) {
       );
     }
 
-    // 2. Perform DNS MX Record check to verify if domain can receive email
-    let mxRecords = [];
+    // 3. DNS MX Record check (with safe catch for serverless environments)
     try {
       const dns = require("dns").promises;
-      mxRecords = await dns.resolveMx(domain);
-    } catch (dnsErr) {
-      console.warn(`[DNS warning] MX resolution failed for domain: ${domain}`, dnsErr);
-      if (dnsErr.code === "ENOTFOUND" || dnsErr.code === "ENODATA") {
-        return NextResponse.json(
-          { error: "The email domain does not exist or has no active mail servers. Please enter a genuine email address." },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (!mxRecords || mxRecords.length === 0) {
-      try {
-        const dns = require("dns").promises;
+      const mxRecords = await dns.resolveMx(domain);
+      if (!mxRecords || mxRecords.length === 0) {
         const aRecords = await dns.resolve4(domain);
         if (!aRecords || aRecords.length === 0) {
           return NextResponse.json(
-            { error: "The email domain is invalid or does not have any active mail servers configured." },
+            { error: "The email domain is invalid or does not have active mail servers." },
             { status: 400 }
           );
         }
-      } catch (aErr) {
-        return NextResponse.json(
-          { error: "The email domain is invalid or does not have any active mail servers configured." },
-          { status: 400 }
-        );
       }
+    } catch (dnsErr) {
+      console.warn(`[DNS warning] MX resolution failed for domain: ${domain}`, dnsErr?.message || dnsErr);
     }
 
     // Convert the File object to a Buffer
     const arrayBuffer = await resumeFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const host = process.env.EMAIL_HOST || "smtp.hostinger.com";
-    const port = parseInt(process.env.EMAIL_PORT) || 465;
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    const user = process.env.EMAIL_USER || "info@sanmora.in";
     const receiver = process.env.EMAIL_RECEIVER || "info@sanmora.in";
-
-    if (!user || !pass) {
-      console.warn("[Mailer Warning] EMAIL_USER or EMAIL_PASS not configured. Skipping career email delivery (simulating success).");
-      return NextResponse.json({ success: true, message: "Application request verified (email sending bypassed due to missing credentials)." });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: host,
-      port: port,
-      secure: port === 465,
-      auth: {
-        user: user,
-        pass: pass
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000
-    });
 
     const mailOptions = {
       from: `"Sanmora Careers" <${user}>`,
@@ -176,7 +240,7 @@ export async function POST(request) {
       ]
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendCareerEmail(mailOptions);
     console.log(`[Success] Career email with attachment sent successfully to ${receiver} for: ${name}`);
     return NextResponse.json({ success: true, message: "Application submitted and email sent successfully!" });
   } catch (error) {

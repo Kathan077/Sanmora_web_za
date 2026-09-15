@@ -160,7 +160,8 @@ export default function SeoLandingClient({ pageData }) {
     setErrorMessage("");
 
     try {
-      const response = await fetch(`/api/consultation`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const response = await fetch(`${baseUrl}/api/consultation`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -155,10 +155,12 @@ button {
 }
 
 /* Accessibility Voice Reader Active Element Highlighting */
-.voice-active-element {
-  outline: 2.5px solid #7c3aed !important;
-  outline-offset: 3px !important;
-  border-radius: inherit !important;
-  box-shadow: 0 0 16px rgba(124, 58, 237, 0.35) !important;
-  transition: outline 0.15s ease, box-shadow 0.15s ease !important;
+.voice-active-element,
+.tts-active-reading-chunk {
+  outline: 2.5px solid #38bdf8 !important;
+  outline-offset: 4px !important;
+  border-radius: 8px !important;
+  background-color: rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.45), inset 0 0 12px rgba(56, 189, 248, 0.25) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }

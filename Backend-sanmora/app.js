@@ -36,6 +36,10 @@ app.get("/health", (req, res) => {
 });
 
 // Start express server
-app.listen(PORT, () => {
-   console.log("Start");
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+     console.log(`Backend server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
