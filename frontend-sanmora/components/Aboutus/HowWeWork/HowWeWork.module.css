@@ -1,0 +1,515 @@
+/* How We Work Module CSS */
+
+.pageContainer {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 24px 80px;
+}
+
+.heroSection {
+  text-align: center;
+  padding: 24px 20px 30px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 10px 16px 50px;
+  }
+
+  .heroSection {
+    padding: 10px 12px 20px;
+  }
+
+  .heroBadge {
+    margin-bottom: 12px;
+  }
+
+  .heroTitle {
+    margin-bottom: 14px;
+  }
+
+  .heroSubtitle {
+    margin-bottom: 24px;
+  }
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.heroTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 5vw, 54px);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.15;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.heroGradientText {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroSubtitle {
+  font-size: clamp(14px, 2vw, 20px);
+  color: var(--text-secondary);
+  max-width: 800px;
+  margin: 0 auto 36px;
+  line-height: 1.6;
+}
+
+/* Process Section */
+.processSection {
+  margin-top: 40px;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(22px, 4.5vw, 32px);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.sectionDesc {
+  font-size: clamp(13.5px, 2.5vw, 16px);
+  color: var(--text-secondary);
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+/* Stepper Tabs */
+.stepperTabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stepTabBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  color: var(--text-secondary);
+  font-size: clamp(12.5px, 2.2vw, 14.5px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.stepTabBtn:hover {
+  background: #FFFFFF;
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.activeStepTab {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%) !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
+  box-shadow: 0 12px 25px -6px rgba(124, 58, 237, 0.4) !important;
+}
+
+.stepNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.activeStepTab .stepNumber {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+/* Detailed Process Card */
+.stepDetailCard {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 25px 60px -15px rgba(124, 58, 237, 0.1);
+  max-width: 900px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.stepDetailLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: rgba(124, 58, 237, 0.08);
+  padding: 6px 14px;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.stepDetailTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.stepDetailDesc {
+  font-size: clamp(13.5px, 2.2vw, 15.5px);
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.deliverablesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.deliverableItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.deliverableCheck {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* SLAs Grid */
+.slaSection {
+  margin-top: 60px;
+}
+
+.slaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.slaCard {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.slaCard:hover {
+  transform: translateY(-5px);
+  border-color: rgba(124, 58, 237, 0.3);
+  box-shadow: 0 20px 40px -15px rgba(124, 58, 237, 0.15);
+}
+
+.slaIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.slaTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.slaDesc {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Engagement Models */
+.modelsSection {
+  margin-top: 60px;
+}
+
+.modelsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.modelCard {
+  background: #FFFFFF;
+  border: 2px solid rgba(124, 58, 237, 0.08);
+  border-radius: 24px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.35s ease;
+  position: relative;
+}
+
+.modelCardFeatured {
+  border-color: var(--primary);
+  box-shadow: 0 20px 50px -10px rgba(124, 58, 237, 0.2);
+}
+
+.featuredBadge {
+  position: absolute;
+  top: -14px;
+  right: 24px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.modelHeader {
+  margin-bottom: 20px;
+}
+
+.modelTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.modelSubtitle {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modelFeatures {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.modelFeatureItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.modelCtaBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modelCtaBtn:hover,
+.modelCardFeatured .modelCtaBtn {
+  background: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.3);
+}
+
+/* Breakpoint 768px (Tablets) */
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 10px 14px 40px;
+    overflow-x: hidden;
+  }
+
+  .stepperTabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .stepTabBtn {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .stepDetailCard {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+
+  .slaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .modelsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Breakpoint 425px (Large Mobile Phones) */
+@media (max-width: 425px) {
+  .heroTitle {
+    font-size: clamp(20px, 6.5vw, 26px);
+  }
+
+  .sectionTitle {
+    font-size: clamp(19px, 6vw, 24px);
+  }
+
+  .stepTabBtn {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+
+  .stepNumber {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .slaCard {
+    padding: 18px 16px;
+  }
+
+  .modelCard {
+    padding: 22px 18px;
+  }
+}
+
+/* Breakpoint 375px (Medium Mobile Phones) */
+@media (max-width: 375px) {
+  .heroTitle {
+    font-size: 21px;
+  }
+
+  .sectionTitle {
+    font-size: 19px;
+  }
+
+  .stepTabBtn {
+    padding: 8px 10px;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .deliverableItem {
+    font-size: 13px;
+  }
+}
+
+/* Breakpoint 320px (Small Mobile Phones / Foldables) */
+@media (max-width: 320px) {
+  .pageContainer {
+    padding: 8px 10px 30px;
+  }
+
+  .heroTitle {
+    font-size: 19px;
+    letter-spacing: -0.5px;
+  }
+
+  .sectionTitle {
+    font-size: 17.5px;
+  }
+
+  .sectionDesc {
+    font-size: 12px;
+  }
+
+  .stepTabBtn {
+    padding: 8px 8px;
+    font-size: 11.5px;
+    gap: 6px;
+  }
+
+  .stepNumber {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .stepDetailCard {
+    padding: 16px 12px;
+    border-radius: 14px;
+  }
+}
