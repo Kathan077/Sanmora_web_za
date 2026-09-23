@@ -501,6 +501,71 @@ export default function BlogDetailClient({ id }) {
 
   return (
     <div className={styles.detailPage}>
+      {post.id === 15 && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "What is the main difference between traditional software and next-generation applications?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Traditional software relies on manual button clicks and isolated feature menus. Next-generation applications are event-driven, connected across APIs, and focus on coordinating complete end-to-end business outcomes automatically."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "Do businesses need to replace all their existing software to modernize?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "No. Modernization often involves building integration layers, APIs, and outcome-oriented workflows around existing tools, allowing legacy software to connect seamlessly with modern web frontends and cloud services."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "How do connected applications reduce operational costs?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "By eliminating manual data transfer between disconnected platforms (like CRMs, ERPs, and spreadsheets), connected applications reduce human errors, automate repetitive admin tasks, and save hundreds of employee hours every month."
+                    }
+                  }
+                ]
+              })
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": "The End of Traditional Software? How the Next Generation of Applications Will Work Differently",
+                "image": "https://sanmora.in/images/end_of_traditional_software.png",
+                "author": {
+                  "@type": "Organization",
+                  "name": "Sanmora Team",
+                  "url": "https://sanmora.in"
+                },
+                "publisher": {
+                  "@type": "Organization",
+                  "name": "Sanmora",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://sanmora.in/logo/sanmora-logo.png"
+                  }
+                },
+                "datePublished": "2026-09-23",
+                "description": "Discover how the next generation of software is shifting from traditional button-clicking tools to connected, event-driven, and outcome-oriented business ecosystems."
+              })
+            }}
+          />
+        </>
+      )}
       {post.id === 10 && (
         <script
           type="application/ld+json"
