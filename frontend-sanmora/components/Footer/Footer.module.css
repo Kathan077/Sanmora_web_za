@@ -199,6 +199,13 @@
   color: var(--text-primary);
 }
 
+.emailGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .emailPill {
   display: inline-flex;
   align-items: center;
