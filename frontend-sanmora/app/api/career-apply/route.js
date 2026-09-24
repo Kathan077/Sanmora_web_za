@@ -187,7 +187,7 @@ export async function POST(request) {
     const buffer = Buffer.from(arrayBuffer);
 
     const user = process.env.EMAIL_USER || "info@sanmora.in";
-    const receiver = process.env.EMAIL_RECEIVER || "info@sanmora.in";
+    const receiver = process.env.EMAIL_RECEIVER || "info@sanmora.in, info@sanmora.co.za";
 
     const mailOptions = {
       from: `"Sanmora Careers" <${user}>`,
