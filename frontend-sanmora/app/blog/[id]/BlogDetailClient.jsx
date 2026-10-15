@@ -402,7 +402,7 @@ export default function BlogDetailClient({ id }) {
   const [shareUrl, setShareUrl] = React.useState("");
 
   // Find matching blog post
-  const post = blogPosts.find(p => p.id === parseInt(id));
+  const post = blogPosts.find(p => p.id === parseInt(id) || p.slug === id);
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -501,6 +501,71 @@ export default function BlogDetailClient({ id }) {
 
   return (
     <div className={styles.detailPage}>
+      {(post.id === 16 || post.slug === "rise-of-digital-twins-real-world-operations") && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "What is the primary difference between a 3D CAD model and a Digital Twin?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "A traditional 3D model represents static physical dimensions and geometry at a specific point in time. A digital twin is dynamically paired with real-world sensor data, operational context, and real-time telemetry to simulate how the physical asset actually performs over time."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "Do businesses need to deploy digital twins across their entire enterprise at once?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "No. The most successful implementations begin with a targeted pilot—focusing on a single high-value machine, critical workflow, or specific facility problem—before expanding into broader operational networks."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    "name": "How do IoT devices and digital twin software interact?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "IoT sensors and connected hardware capture live operational metrics (temperature, vibration, pressure, energy usage) and stream them into the digital twin software platform, which maps the data against digital models for simulation, predictive maintenance, and operational analytics."
+                    }
+                  }
+                ]
+              })
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": "The Rise of Digital Twins: Transforming Real-World Operations",
+                "image": "https://sanmora.in/images/digital_twins_real_world_operations.jpg",
+                "author": {
+                  "@type": "Organization",
+                  "name": "Sanmora Technology Team",
+                  "url": "https://sanmora.in"
+                },
+                "publisher": {
+                  "@type": "Organization",
+                  "name": "Sanmora",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://sanmora.in/logo/sanmora-logo.png"
+                  }
+                },
+                "datePublished": "2026-10-15",
+                "description": "Discover how digital twins connect physical assets with real-time data to improve monitoring, simulation, maintenance and business decision-making."
+              })
+            }}
+          />
+        </>
+      )}
       {post.id === 15 && (
         <>
           <script
@@ -1027,7 +1092,7 @@ export default function BlogDetailClient({ id }) {
                   <span>S</span>
                 </div>
                 <div className={styles.authorInfo}>
-                  <h5 className={styles.authorName}>Sanmora Team</h5>
+                  <h5 className={styles.authorName}>{post.author || "Sanmora Team"}</h5>
                   <p className={styles.authorMeta}>
                     Published in {post.category} • {post.date} • {post.readTime}
                   </p>
@@ -1081,7 +1146,7 @@ export default function BlogDetailClient({ id }) {
                       {relatedPosts.map((relatedPost) => (
                         <Link 
                           key={relatedPost.id} 
-                          href={`/blog/${relatedPost.id}`}
+                          href={`/blog/${relatedPost.slug || relatedPost.id}`}
                           className={styles.relatedCard}
                         >
                           <h5 className={styles.relatedCardTitle}>{relatedPost.title}</h5>
@@ -1090,7 +1155,7 @@ export default function BlogDetailClient({ id }) {
                               <span>S</span>
                             </div>
                             <div className={styles.relatedCardAuthorInfo}>
-                              <span className={styles.relatedCardAuthorName}>Sanmora Team</span>
+                              <span className={styles.relatedCardAuthorName}>{relatedPost.author || "Sanmora Team"}</span>
                               <span className={styles.relatedCardMeta}>{relatedPost.date} • {relatedPost.readTime}</span>
                             </div>
                           </div>
