@@ -31,8 +31,8 @@ const sendViaResend = async (mailOptions) => {
   }
 
   // Handle display name prefix and default to onboarding email if no verified custom domain
-  let sender = process.env.RESEND_FROM;
-  if (!sender) {
+  let sender = process.env.RESEND_FROM || from;
+  if (!process.env.RESEND_FROM && !from.includes("@sanmora.in")) {
     const match = from.match(/^"([^"]+)"/);
     const namePrefix = match ? `"${match[1]}" ` : "";
     sender = `${namePrefix}<onboarding@resend.dev>`;

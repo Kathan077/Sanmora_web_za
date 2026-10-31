@@ -1,0 +1,28 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+Backend-sanmora/.env
+Backend-sanmora/.env.*
+!Backend-sanmora/.env.example
+frontend-sanmora/.env*
+!frontend-sanmora/.env.example
+
+# Dependencies
+node_modules/
+
+# Next.js build output & cache
+.next/
+out/
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db

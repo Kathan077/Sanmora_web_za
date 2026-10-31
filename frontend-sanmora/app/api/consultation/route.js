@@ -5,12 +5,13 @@ async function sendConsultationEmail({ from, to, subject, html }) {
   // 1. If RESEND_API_KEY is configured, send via Resend HTTP API
   if (process.env.RESEND_API_KEY) {
     console.log("[Mailer] Sending consultation email via Resend HTTP API...");
-    let sender = process.env.RESEND_FROM;
-    if (!sender) {
+    let sender = process.env.RESEND_FROM || from;
+    if (!process.env.RESEND_FROM && !from.includes("@sanmora.in")) {
       const match = from.match(/^"([^"]+)"/);
       const namePrefix = match ? `"${match[1]}" ` : "";
       sender = `${namePrefix}<onboarding@resend.dev>`;
     }
+    const recipients = typeof to === "string" ? to.split(",").map(e => e.trim()).filter(Boolean) : to;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -19,7 +20,7 @@ async function sendConsultationEmail({ from, to, subject, html }) {
       },
       body: JSON.stringify({
         from: sender,
-        to: typeof to === "string" ? [to] : to,
+        to: recipients,
         subject,
         html
       })
