@@ -59,7 +59,7 @@ OFFICE LOCATIONS & CONTACT DETAILS:
    - Email: info@sanmora.co.za
 
 2. India Headquarters:
-   - Address: 13, Virat Apartment, Opp. BRTS Bus Stand, Opp. Shakuntala Bunglow, Sola Road, Ghatlodiya, Ahmedabad, Gujarat 380061
+   - Address: A-210, Titanium City Centre, Anand Nagar Road, Ahmedabad, Gujarat 380015
    - Phone: +91 87800 05326
    - WhatsApp: +91 87800 05326
    - Email: info@sanmora.in
