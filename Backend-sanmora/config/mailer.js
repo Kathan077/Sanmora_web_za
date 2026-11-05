@@ -4,17 +4,18 @@ if (typeof dns.setDefaultResultOrder === "function") {
   dns.setDefaultResultOrder("ipv4first");
 }
 
+let cachedTransporter = null;
+
 /**
  * Custom wrapper that mimics Nodemailer's transporter object but sends via HTTPS API
  * for Resend or SendGrid to bypass SMTP port blocking on environments like Render Free Tier.
  */
 const sendViaResend = async (mailOptions) => {
-  const { from, to, subject, html, attachments } = mailOptions;
+  const { from, to, subject, html, attachments, text } = mailOptions;
 
-  // Format attachments for Resend API (base64 encoded content)
   let resendAttachments = [];
   if (attachments && attachments.length > 0) {
-    resendAttachments = attachments.map(att => {
+    resendAttachments = attachments.map((att) => {
       let base64Content = "";
       if (Buffer.isBuffer(att.content)) {
         base64Content = att.content.toString("base64");
@@ -25,12 +26,11 @@ const sendViaResend = async (mailOptions) => {
       }
       return {
         filename: att.filename,
-        content: base64Content
+        content: base64Content,
       };
     });
   }
 
-  // Handle display name prefix and default to onboarding email if no verified custom domain
   let sender = process.env.RESEND_FROM || from;
   if (!process.env.RESEND_FROM && !from.includes("@sanmora.in")) {
     const match = from.match(/^"([^"]+)"/);
@@ -38,34 +38,42 @@ const sendViaResend = async (mailOptions) => {
     sender = `${namePrefix}<onboarding@resend.dev>`;
   }
 
+  const recipients = Array.isArray(to)
+    ? to
+    : String(to)
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
     },
     body: JSON.stringify({
       from: sender,
-      to: typeof to === "string" ? to.split(",").map(e => e.trim()) : to,
+      to: recipients,
       subject: subject,
       html: html,
-      attachments: resendAttachments.length > 0 ? resendAttachments : undefined
-    })
+      text: text,
+      attachments: resendAttachments.length > 0 ? resendAttachments : undefined,
+    }),
   });
 
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.message || `Resend API returned status ${response.status}`);
   }
-  return data;
+  return { success: true, messageId: data.id, provider: "resend" };
 };
 
 const sendViaSendGrid = async (mailOptions) => {
-  const { from, to, subject, html, attachments } = mailOptions;
+  const { from, to, subject, html, attachments, text } = mailOptions;
 
   let sendgridAttachments = [];
   if (attachments && attachments.length > 0) {
-    sendgridAttachments = attachments.map(att => {
+    sendgridAttachments = attachments.map((att) => {
       let base64Content = "";
       if (Buffer.isBuffer(att.content)) {
         base64Content = att.content.toString("base64");
@@ -78,12 +86,11 @@ const sendViaSendGrid = async (mailOptions) => {
         content: base64Content,
         filename: att.filename,
         type: att.contentType || "application/octet-stream",
-        disposition: "attachment"
+        disposition: "attachment",
       };
     });
   }
 
-  // Extract plain email from "Display Name <email@domain.com>"
   let senderEmail = from;
   if (from.includes("<")) {
     const match = from.match(/<([^>]+)>/);
@@ -92,30 +99,37 @@ const sendViaSendGrid = async (mailOptions) => {
     }
   }
 
+  const recipients = Array.isArray(to)
+    ? to
+    : String(to)
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
   const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.SENDGRID_API_KEY}`
+      Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
     },
     body: JSON.stringify({
       personalizations: [
         {
-          to: (typeof to === "string" ? to.split(",").map(e => e.trim()) : to).map(email => ({ email }))
-        }
+          to: recipients.map((email) => ({ email })),
+        },
       ],
       from: {
-        email: senderEmail
+        email: senderEmail,
       },
       subject: subject,
       content: [
         {
           type: "text/html",
-          value: html
-        }
+          value: html,
+        },
       ],
-      attachments: sendgridAttachments.length > 0 ? sendgridAttachments : undefined
-    })
+      attachments: sendgridAttachments.length > 0 ? sendgridAttachments : undefined,
+    }),
   });
 
   if (!response.ok) {
@@ -128,64 +142,66 @@ const sendViaSendGrid = async (mailOptions) => {
     }
     throw new Error(`SendGrid API returned status ${response.status}: ${errorText}`);
   }
-  return { success: true };
+  return { success: true, provider: "sendgrid" };
 };
 
 const getTransporter = () => {
   // 1. If RESEND_API_KEY is configured, return the HTTP API wrapper
   if (process.env.RESEND_API_KEY) {
-    console.log("[Mailer] Configured to use Resend HTTP API.");
     return {
-      sendMail: sendViaResend
+      sendMail: sendViaResend,
     };
   }
 
   // 2. If SENDGRID_API_KEY is configured, return the HTTP API wrapper
   if (process.env.SENDGRID_API_KEY) {
-    console.log("[Mailer] Configured to use SendGrid HTTP API.");
     return {
-      sendMail: sendViaSendGrid
+      sendMail: sendViaSendGrid,
     };
   }
 
-  // 3. Fallback to standard Nodemailer SMTP
-  console.log("[Mailer] Configured to use SMTP Transporter.");
+  // 3. Fallback to standard Nodemailer Hostinger SMTP with pooling
+  if (cachedTransporter) {
+    return cachedTransporter;
+  }
+
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASS;
 
   if (!user || !pass) {
-    console.warn("WARNING: SMTP credentials (EMAIL_USER/EMAIL_PASS) are not configured in .env. Emails will fail to send.");
+    console.warn(
+      "[Mailer Warning] SMTP credentials (EMAIL_USER/EMAIL_PASS) are not configured. Emails will fail."
+    );
   }
 
-  const host = process.env.EMAIL_HOST || "smtp.gmail.com";
-  if (host.includes("gmail.com")) {
-    return nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: user,
-        pass: pass
-      },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000
-    });
-  }
+  const host = process.env.EMAIL_HOST || "smtp.hostinger.com";
+  const port = parseInt(process.env.EMAIL_PORT, 10) || 465;
+  const secure = port === 465 || process.env.EMAIL_SECURE === "true";
 
-  return nodemailer.createTransport({
+  cachedTransporter = nodemailer.createTransport({
     host: host,
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: process.env.EMAIL_PORT == 465,
+    port: port,
+    secure: secure,
     auth: {
       user: user,
-      pass: pass
+      pass: pass,
     },
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 10000
+    pool: true, // Connection pooling to prevent rapid socket teardown
+    maxConnections: 3,
+    maxMessages: 50,
+    rateLimit: 5,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: true,
+      minVersion: "TLSv1.2",
+    },
   });
+
+  return cachedTransporter;
 };
 
 module.exports = {
-  getTransporter
+  getTransporter,
 };
-

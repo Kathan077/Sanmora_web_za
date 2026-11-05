@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import ParticleBackground from "@/components/Home/ParticleBackground";
 import IconRenderer from "@/components/Shared/IconRenderer";
+import { useRecaptcha } from "@/lib/useRecaptcha";
 import styles from "./SeoLandingClient.module.css";
 
 const DISPOSABLE_DOMAINS = [
@@ -18,12 +19,14 @@ const DISPOSABLE_DOMAINS = [
 
 export default function SeoLandingClient({ pageData }) {
   const [openFaqIndex, setOpenFaqIndex] = useState(null);
+  const { executeRecaptcha } = useRecaptcha();
   
   // Lead Capture Form States
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [emailId, setEmailId] = useState("");
   const [contactNo, setContactNo] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState(""); // Honeypot trap
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error'
   const [errorMessage, setErrorMessage] = useState("");
@@ -160,6 +163,13 @@ export default function SeoLandingClient({ pageData }) {
     setErrorMessage("");
 
     try {
+      let captchaToken = "";
+      try {
+        captchaToken = await executeRecaptcha("consultation_seo_submit");
+      } catch (recaptchaErr) {
+        console.warn("[reCAPTCHA Warning] Could not obtain token:", recaptchaErr);
+      }
+
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${baseUrl}/api/consultation`, {
         method: "POST",
@@ -172,6 +182,8 @@ export default function SeoLandingClient({ pageData }) {
           emailId,
           contactNo,
           serviceName: `${headline} (SEO Landing Page)`,
+          captchaToken,
+          website_url: websiteUrl,
         }),
       });
 
@@ -183,6 +195,7 @@ export default function SeoLandingClient({ pageData }) {
         setCompanyName("");
         setEmailId("");
         setContactNo("");
+        setWebsiteUrl("");
         setErrors({});
       } else {
         setSubmitStatus("error");
@@ -469,6 +482,20 @@ export default function SeoLandingClient({ pageData }) {
           {/* Form Side */}
           <div>
             <form onSubmit={handleSubmit} className={styles.formContainer} noValidate>
+              {/* Honeypot field for bot protection */}
+              <div style={{ display: "none", position: "absolute", left: "-9999px" }} aria-hidden="true">
+                <label htmlFor="seo_website_url">Do not fill this field</label>
+                <input
+                  type="text"
+                  id="seo_website_url"
+                  name="website_url"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                />
+              </div>
+
               <div className={styles.formGroup}>
                 <label className={styles.formLabel} htmlFor="fullName">Full Name</label>
                 <input 

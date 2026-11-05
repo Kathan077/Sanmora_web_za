@@ -1,108 +1,34 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
+import path from "path";
+import { sendEmail } from "@/lib/mailer";
+import {
+  sanitizeHeader,
+  sanitizeHtml,
+  validateEmailAddress,
+  verifyEmailDomain,
+  verifyRecaptchaToken,
+  checkEmailRateLimit,
+  checkDuplicateSubmission,
+  logSmtpAudit,
+} from "@/lib/emailSecurity";
 
-async function sendCareerEmail({ from, to, subject, html, attachments }) {
-  // 1. If RESEND_API_KEY is configured, send via Resend HTTP API
-  if (process.env.RESEND_API_KEY) {
-    console.log("[Mailer] Sending career email via Resend HTTP API...");
-    let resendAttachments = [];
-    if (attachments && attachments.length > 0) {
-      resendAttachments = attachments.map(att => ({
-        filename: att.filename,
-        content: att.content.toString("base64")
-      }));
-    }
-    let sender = process.env.RESEND_FROM;
-    if (!sender) {
-      const match = from.match(/^"([^"]+)"/);
-      const namePrefix = match ? `"${match[1]}" ` : "";
-      sender = `${namePrefix}<onboarding@resend.dev>`;
-    }
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`
-      },
-      body: JSON.stringify({
-        from: sender,
-        to: typeof to === "string" ? [to] : to,
-        subject,
-        html,
-        attachments: resendAttachments.length > 0 ? resendAttachments : undefined
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || `Resend API returned status ${res.status}`);
-    }
-    return data;
-  }
+const ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/octet-stream", // Fallback for some OS file uploaders
+]);
 
-  // 2. If SENDGRID_API_KEY is configured, send via SendGrid HTTP API
-  if (process.env.SENDGRID_API_KEY) {
-    console.log("[Mailer] Sending career email via SendGrid HTTP API...");
-    let sendgridAttachments = [];
-    if (attachments && attachments.length > 0) {
-      sendgridAttachments = attachments.map(att => ({
-        content: att.content.toString("base64"),
-        filename: att.filename,
-        type: att.contentType || "application/octet-stream",
-        disposition: "attachment"
-      }));
-    }
-    let senderEmail = from;
-    if (from.includes("<")) {
-      const match = from.match(/<([^>]+)>/);
-      if (match) senderEmail = match[1].trim();
-    }
-    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.SENDGRID_API_KEY}`
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: (typeof to === "string" ? [to] : to).map(e => ({ email: e })) }],
-        from: { email: senderEmail },
-        subject,
-        content: [{ type: "text/html", value: html }],
-        attachments: sendgridAttachments.length > 0 ? sendgridAttachments : undefined
-      })
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`SendGrid API returned status ${res.status}: ${errText}`);
-    }
-    return { success: true };
-  }
-
-  // 3. Fallback to Nodemailer SMTP
-  const host = process.env.EMAIL_HOST || "smtp.hostinger.com";
-  const port = parseInt(process.env.EMAIL_PORT) || 465;
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-
-  if (!user || !pass) {
-    console.warn("[Mailer Warning] EMAIL_USER or EMAIL_PASS not configured in environment. Skipping email delivery.");
-    return { success: true, bypassed: true };
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: host,
-    port: port,
-    secure: port === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000
-  });
-
-  return await transporter.sendMail({ from, to, subject, html, attachments });
-}
+const ALLOWED_EXTENSIONS = new Set([".pdf", ".doc", ".docx"]);
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
 
 export async function POST(request) {
+  const startTime = Date.now();
+  const forwarded = request.headers.get("x-forwarded-for");
+  const clientIp = forwarded
+    ? forwarded.split(",")[0].trim()
+    : request.headers.get("x-real-ip") || "127.0.0.1";
+
   try {
     const formData = await request.formData();
     const name = formData.get("name");
@@ -113,78 +39,175 @@ export async function POST(request) {
     const jobId = formData.get("jobId");
     const jobTitle = formData.get("jobTitle");
     const resumeFile = formData.get("resume");
+    const captchaToken = formData.get("captchaToken");
+    const website_url = formData.get("website_url"); // Honeypot trap
 
+    // ── 1. Honeypot Bot Trap ─────────────────────────────────────────────────
+    if (website_url) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "BOT_BLOCKED",
+        action: "career_honeypot_triggered",
+        error: "Honeypot field filled by automated bot.",
+        latencyMs: Date.now() - startTime,
+      });
+      return NextResponse.json({
+        success: true,
+        message: "Application submitted and email sent successfully!",
+      });
+    }
+
+    // ── 2. IP & Global Rate Limiting ─────────────────────────────────────────
+    const rateCheck = checkEmailRateLimit(clientIp);
+    if (rateCheck.limited) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "RATE_LIMITED",
+        action: "career_rate_limit",
+        error: rateCheck.reason,
+        latencyMs: Date.now() - startTime,
+      });
+      return NextResponse.json(
+        { error: rateCheck.reason },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.retryAfter),
+          },
+        }
+      );
+    }
+
+    // ── 3. Field Presence Checks ─────────────────────────────────────────────
     if (!name || !email || !whatsapp || !message || !resumeFile) {
       return NextResponse.json(
-        { error: "Missing required fields (name, email, whatsapp, message, and resume are required)." },
+        {
+          error: "Missing required fields (name, email, whatsapp, message, and resume are required).",
+        },
         { status: 400 }
       );
     }
 
-    // Validate email syntax first
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
+    // ── 4. Email Syntax & Domain Validation ──────────────────────────────────
+    const emailValidation = validateEmailAddress(email);
+    if (!emailValidation.valid) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "VALIDATION_FAILED",
+        error: emailValidation.error,
+        latencyMs: Date.now() - startTime,
+      });
       return NextResponse.json(
-        { error: "Please enter a valid email address." },
+        { error: emailValidation.error },
         { status: 400 }
       );
     }
 
-    const parts = email.split("@");
-    const username = parts[0].toLowerCase();
-    const domain = parts[1].toLowerCase();
-
-    // 1. Check fake or placeholder email addresses
-    const fakePrefixes = ["abc", "xyz", "qwe", "asd", "zxc", "jkl", "qwerty", "test", "testing", "dummy", "example", "fake", "demo", "noreply", "no-reply", "null", "none", "temp"];
-    const prefixPattern = new RegExp(`^(${fakePrefixes.join("|")})[._-]?\\d*$`);
-    const forbiddenSubstrings = ["testing", "fakeemail", "exampleemail", "dummyemail"];
-
-    if (
-      prefixPattern.test(username) || 
-      forbiddenSubstrings.some(sub => username.includes(sub)) || 
-      /^(.)\1{2,}$/.test(username) || 
-      /^\d+$/.test(username)
-    ) {
+    const hasActiveMailServer = await verifyEmailDomain(emailValidation.domain);
+    if (!hasActiveMailServer) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "VALIDATION_FAILED",
+        recipientDomain: emailValidation.domain,
+        error: "Email domain has no valid MX or A records.",
+        latencyMs: Date.now() - startTime,
+      });
       return NextResponse.json(
-        { error: "Please enter a genuine, professional email address. Fake or placeholder emails are not allowed." },
+        { error: "The provided email domain is invalid or does not have active mail servers." },
         { status: 400 }
       );
     }
-    
-    // 2. Check disposable email domain list
-    const DISPOSABLE_DOMAINS = new Set([
-      "mailinator.com", "tempmail.com", "temp-mail.org", "10minutemail.com",
-      "yopmail.com", "guerrillamail.com", "dispostable.com", "getairmail.com",
-      "maildrop.cc", "trashmail.com", "mailnesia.com", "temp-mail.io", "fakemailgenerator.com",
-      "generator.email", "disposable.com", "tempmailaddress.com", "throwawaymail.com"
-    ]);
-    if (DISPOSABLE_DOMAINS.has(domain)) {
+
+    // ── 5. Duplicate Submission Cooldown ─────────────────────────────────────
+    const duplicateCheck = checkDuplicateSubmission(
+      clientIp,
+      `${emailValidation.email}:${jobTitle || jobId || "career"}`
+    );
+    if (duplicateCheck.isDuplicate) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "RATE_LIMITED",
+        action: "career_duplicate_blocked",
+        error: duplicateCheck.message,
+        latencyMs: Date.now() - startTime,
+      });
       return NextResponse.json(
-        { error: "Temporary or disposable email addresses are not allowed. Please use a genuine email address." },
+        { error: duplicateCheck.message },
+        { status: 429 }
+      );
+    }
+
+    // ── 6. Google reCAPTCHA v3 Verification ──────────────────────────────────
+    const recaptchaResult = await verifyRecaptchaToken(
+      captchaToken,
+      "career_submit",
+      clientIp
+    );
+    if (!recaptchaResult.success) {
+      logSmtpAudit({
+        endpoint: "/api/career-apply",
+        ip: clientIp,
+        status: "BOT_BLOCKED",
+        action: "recaptcha_verification_failed",
+        error: recaptchaResult.error,
+        latencyMs: Date.now() - startTime,
+      });
+      return NextResponse.json(
+        { error: recaptchaResult.error || "Security verification failed." },
         { status: 400 }
       );
     }
 
-    // 3. DNS MX Record check (with safe catch for serverless environments)
-    try {
-      const dns = require("dns").promises;
-      const mxRecords = await dns.resolveMx(domain);
-      if (!mxRecords || mxRecords.length === 0) {
-        const aRecords = await dns.resolve4(domain);
-        if (!aRecords || aRecords.length === 0) {
-          return NextResponse.json(
-            { error: "The email domain is invalid or does not have active mail servers." },
-            { status: 400 }
-          );
-        }
-      }
-    } catch (dnsErr) {
-      console.warn(`[DNS warning] MX resolution failed for domain: ${domain}`, dnsErr?.message || dnsErr);
+    // ── 7. File Attachment Security Checks ───────────────────────────────────
+    if (typeof resumeFile.size === "number" && resumeFile.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "Resume file size exceeds maximum allowed limit of 10MB." },
+        { status: 400 }
+      );
     }
 
-    // Convert the File object to a Buffer
+    const fileExt = path.extname(resumeFile.name || "").toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(fileExt)) {
+      return NextResponse.json(
+        { error: "Invalid resume format. Only PDF, DOC, and DOCX files are permitted." },
+        { status: 400 }
+      );
+    }
+
+    if (resumeFile.type && !ALLOWED_MIME_TYPES.has(resumeFile.type)) {
+      return NextResponse.json(
+        { error: "Invalid resume file type. Please upload a genuine PDF or Word document." },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize file name for safe attachment handling
+    const safeBaseName = path
+      .basename(resumeFile.name || "resume.pdf")
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .slice(0, 60);
+
     const arrayBuffer = await resumeFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // ── 8. Input Sanitization & Anti-Header-Injection ────────────────────────
+    const cleanName = sanitizeHeader(name, 80);
+    const cleanJobTitle = sanitizeHeader(jobTitle || `Job ID: ${jobId || "General"}`, 80);
+    const cleanWhatsapp = sanitizeHeader(whatsapp, 30);
+    const cleanPortfolio = sanitizeHeader(portfolio || "N/A", 200);
+    const cleanEmail = emailValidation.email;
+
+    const safeName = sanitizeHtml(cleanName);
+    const safeJobTitle = sanitizeHtml(cleanJobTitle);
+    const safeWhatsapp = sanitizeHtml(cleanWhatsapp);
+    const safePortfolio = sanitizeHtml(cleanPortfolio);
+    const safeMessage = sanitizeHtml(message, 3000);
+    const safeEmail = sanitizeHtml(cleanEmail);
 
     const user = process.env.EMAIL_USER || "info@sanmora.in";
     const receiver = process.env.EMAIL_RECEIVER || "info@sanmora.in, info@sanmora.co.za";
@@ -192,61 +215,83 @@ export async function POST(request) {
     const mailOptions = {
       from: `"Sanmora Careers" <${user}>`,
       to: receiver,
-      subject: `New Job Application: ${jobTitle || "Job Seeker"} - ${name}`,
+      subject: `New Job Application: ${cleanJobTitle} - ${cleanName}`,
+      text: `New Job Application\n\nRole: ${cleanJobTitle}\nName: ${cleanName}\nEmail: ${cleanEmail}\nWhatsApp: ${cleanWhatsapp}\nPortfolio: ${cleanPortfolio}\n\nCover Letter / Message:\n${message}\n\nResume attached.`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h2 style="color: #06b6d4; border-bottom: 2px solid #06b6d4; padding-bottom: 10px;">Job Application Received</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+          <h2 style="color: #06b6d4; border-bottom: 2px solid #06b6d4; padding-bottom: 12px; margin-top: 0;">Job Application Received</h2>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563; width: 180px;">Job Role Applied:</td>
-              <td style="padding: 8px 0; color: #1f2937;"><strong>${jobTitle || "Job ID: " + jobId}</strong></td>
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563; width: 170px;">Job Role Applied:</td>
+              <td style="padding: 10px 0; color: #1f2937;"><strong>${safeJobTitle}</strong></td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Applicant Name:</td>
-              <td style="padding: 8px 0; color: #1f2937;">${name}</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Applicant Name:</td>
+              <td style="padding: 10px 0; color: #1f2937;">${safeName}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Email Address:</td>
-              <td style="padding: 8px 0; color: #1f2937;"><a href="mailto:${email}">${email}</a></td>
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Email Address:</td>
+              <td style="padding: 10px 0; color: #1f2937;"><a href="mailto:${safeEmail}">${safeEmail}</a></td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">WhatsApp Number:</td>
-              <td style="padding: 8px 0; color: #1f2937;">${whatsapp}</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">WhatsApp Number:</td>
+              <td style="padding: 10px 0; color: #1f2937;">${safeWhatsapp}</td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563;">Portfolio / GitHub:</td>
-              <td style="padding: 8px 0; color: #1f2937;">
-                ${portfolio ? `<a href="${portfolio}" target="_blank">${portfolio}</a>` : "N/A"}
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Portfolio / GitHub:</td>
+              <td style="padding: 10px 0; color: #1f2937;">
+                ${safePortfolio !== "N/A" ? `<a href="${safePortfolio}" target="_blank" rel="noopener noreferrer">${safePortfolio}</a>` : "N/A"}
               </td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; font-weight: bold; color: #4b5563; vertical-align: top;">Cover Letter / Message:</td>
-              <td style="padding: 8px 0; color: #1f2937; white-space: pre-line;">${message}</td>
+              <td style="padding: 10px 0; font-weight: bold; color: #4b5563; vertical-align: top;">Cover Letter / Message:</td>
+              <td style="padding: 10px 0; color: #1f2937; white-space: pre-line;">${safeMessage}</td>
             </tr>
           </table>
           <p style="margin-top: 20px; font-size: 13px; color: #64748b;">
-            <em>Note: The applicant's resume is attached to this email.</em>
+            <em>Note: The applicant's verified resume is attached to this email.</em>
           </p>
-          <div style="margin-top: 30px; padding: 12px; background-color: #ecfeff; color: #0891b2; border-radius: 6px; font-size: 14px; text-align: center;">
-            This job application was submitted from the Sanmora Careers Portal.
+          <div style="margin-top: 30px; padding: 12px; background-color: #ecfeff; color: #0891b2; border-radius: 6px; font-size: 13px; text-align: center;">
+            This job application was verified by Google reCAPTCHA v3 and submitted from the Sanmora Careers Portal.
           </div>
         </div>
       `,
       attachments: [
         {
-          filename: resumeFile.name,
-          content: buffer
-        }
-      ]
+          filename: safeBaseName,
+          content: buffer,
+        },
+      ],
     };
 
-    await sendCareerEmail(mailOptions);
-    console.log(`[Success] Career email with attachment sent successfully to ${receiver} for: ${name}`);
-    return NextResponse.json({ success: true, message: "Application submitted and email sent successfully!" });
+    const sendResult = await sendEmail(mailOptions);
+
+    logSmtpAudit({
+      endpoint: "/api/career-apply",
+      ip: clientIp,
+      status: "SUCCESS",
+      recipientDomain: "sanmora.in",
+      action: "career_delivered",
+      messageId: sendResult.messageId,
+      latencyMs: Date.now() - startTime,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Application submitted and email sent successfully!",
+    });
   } catch (error) {
-    console.error("[Error] Failed to send career email:", error);
+    logSmtpAudit({
+      endpoint: "/api/career-apply",
+      ip: clientIp,
+      status: "SMTP_ERROR",
+      action: "career_failed",
+      error: error.message || error,
+      latencyMs: Date.now() - startTime,
+    });
+
     return NextResponse.json(
-      { error: "Failed to send career email: " + error.message },
+      { error: "Failed to send career application. Please try again later or contact us directly." },
       { status: 500 }
     );
   }

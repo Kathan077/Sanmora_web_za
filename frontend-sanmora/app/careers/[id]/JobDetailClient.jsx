@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRecaptcha } from "@/lib/useRecaptcha";
 import styles from "../careers.module.css";
 
 const DISPOSABLE_DOMAINS = [
@@ -69,11 +70,13 @@ const jobsDetails = {
 export default function JobDetailClient({ id }) {
   const router = useRouter();
   const job = jobsDetails[id];
+  const { executeRecaptcha } = useRecaptcha();
   const [isApplying, setIsApplying] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [errors, setErrors] = useState({});
+  const [websiteUrl, setWebsiteUrl] = useState(""); // Honeypot trap
 
   // Form State
   const [formData, setFormData] = useState({
@@ -232,6 +235,13 @@ export default function JobDetailClient({ id }) {
     setIsSubmitting(true);
 
     try {
+      let captchaToken = "";
+      try {
+        captchaToken = await executeRecaptcha("career_submit");
+      } catch (recaptchaErr) {
+        console.warn("[reCAPTCHA Warning] Could not obtain token:", recaptchaErr);
+      }
+
       const data = new FormData();
       data.append("name", formData.name);
       data.append("email", formData.email);
@@ -241,6 +251,8 @@ export default function JobDetailClient({ id }) {
       data.append("message", formData.message);
       data.append("jobId", id);
       data.append("jobTitle", formData.jobType);
+      data.append("captchaToken", captchaToken);
+      data.append("website_url", websiteUrl);
 
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${baseUrl}/api/career-apply`, {
@@ -432,6 +444,20 @@ export default function JobDetailClient({ id }) {
                     transition={{ duration: 0.2 }}
                   >
                     <form onSubmit={handleFormSubmit} noValidate>
+                      {/* Honeypot field for bot protection */}
+                      <div style={{ display: "none", position: "absolute", left: "-9999px" }} aria-hidden="true">
+                        <label htmlFor="career_website_url">Do not fill this field</label>
+                        <input
+                          type="text"
+                          id="career_website_url"
+                          name="website_url"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={websiteUrl}
+                          onChange={(e) => setWebsiteUrl(e.target.value)}
+                        />
+                      </div>
+
                       <h4 className={styles.jobTitle} style={{ fontSize: "1.4rem", marginBottom: "20px" }}>Apply for Role</h4>
                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                         <div className={styles.formGroup}>

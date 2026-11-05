@@ -6,6 +6,7 @@ import Link from "next/link";
 import styles from "./ConsultationClient.module.css";
 import servicesStyles from "@/app/services/services.module.css";
 import ParticleBackground from "@/components/Home/ParticleBackground";
+import { useRecaptcha } from "@/lib/useRecaptcha";
 
 import { servicesData } from "@/components/Navbar/servicesData";
 
@@ -18,11 +19,13 @@ const DISPOSABLE_DOMAINS = [
 
 export default function ConsultationClient() {
   const searchParams = useSearchParams();
+  const { executeRecaptcha } = useRecaptcha();
   const [serviceName, setServiceName] = useState("");
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [emailId, setEmailId] = useState("");
   const [contactNo, setContactNo] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState(""); // Honeypot field
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', or null
   const [errorMessage, setErrorMessage] = useState("");
@@ -143,6 +146,14 @@ export default function ConsultationClient() {
     setErrorMessage("");
 
     try {
+      // Execute Google reCAPTCHA v3
+      let captchaToken = "";
+      try {
+        captchaToken = await executeRecaptcha("consultation_submit");
+      } catch (recaptchaErr) {
+        console.warn("[reCAPTCHA Warning] Could not obtain token:", recaptchaErr);
+      }
+
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${baseUrl}/api/consultation`, {
         method: "POST",
@@ -155,6 +166,8 @@ export default function ConsultationClient() {
           emailId,
           contactNo,
           serviceName,
+          captchaToken,
+          website_url: websiteUrl,
         }),
       });
 
@@ -167,6 +180,7 @@ export default function ConsultationClient() {
         setCompanyName("");
         setEmailId("");
         setContactNo("");
+        setWebsiteUrl("");
         setErrors({});
       } else {
         setSubmitStatus("error");
@@ -227,6 +241,20 @@ export default function ConsultationClient() {
           style={{ margin: "0 auto", marginTop: "2rem" }}
         >
           <form onSubmit={handleSubmit} className={styles.formGrid} noValidate>
+            {/* Honeypot field for anti-bot spam protection */}
+            <div style={{ display: "none", position: "absolute", left: "-9999px" }} aria-hidden="true">
+              <label htmlFor="website_url">Do not fill this field</label>
+              <input
+                type="text"
+                id="website_url"
+                name="website_url"
+                tabIndex={-1}
+                autoComplete="off"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+              />
+            </div>
+
             <div className={styles.formGroupFull}>
               <label className={styles.label} htmlFor="serviceName">Service of Interest</label>
               <select 
