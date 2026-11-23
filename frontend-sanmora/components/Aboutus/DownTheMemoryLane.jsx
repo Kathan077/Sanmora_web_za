@@ -27,7 +27,7 @@ const memoryBlocks = [
   
     category: "GLOBAL TEAM & COLLABORATION",
     title: "Cross-Border Collaboration & Workspace Culture",
-    description: "Our office workspace brings together talented engineers, architects, and product leaders across India and South Africa in a supportive atmosphere built around teamwork and shared growth.",
+    description: "Our office workspace brings together talented engineers, architects, and product leaders across South Africa and India in a supportive atmosphere built around teamwork and shared growth.",
     image: "/images/culture/sanmora_team_photo_4.jpeg",
     floatingBadge: "👥 Global Team",
     highlights: ["Global Collaboration", "Supportive Workspace", "Engineering Culture"],

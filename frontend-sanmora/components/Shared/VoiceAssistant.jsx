@@ -20,33 +20,8 @@ import {
 } from "lucide-react";
 import styles from "./VoiceAssistant.module.css";
 
-// Comprehensive Multi-Language Dataset (23 Indian + 30 African + 11 Global = 64 Total Languages)
+// Comprehensive Multi-Language Dataset (30 African + 23 Indian + 11 Global = 64 Total Languages)
 const ALL_LANGUAGES = [
-  // ── 23 Indian Languages (All Official 22 8th Schedule Languages + English India) ──
-  { code: "en", name: "English (India)", native: "English", bcp47: "en-IN", category: "India", regionBadge: "IN" },
-  { code: "hi", name: "Hindi", native: "हिन्दी", bcp47: "hi-IN", category: "India", regionBadge: "IN" },
-  { code: "gu", name: "Gujarati", native: "ગુજરાતી", bcp47: "gu-IN", category: "India", regionBadge: "IN" },
-  { code: "mr", name: "Marathi", native: "मराठी", bcp47: "mr-IN", category: "India", regionBadge: "IN" },
-  { code: "ta", name: "Tamil", native: "தமிழ்", bcp47: "ta-IN", category: "India", regionBadge: "IN" },
-  { code: "te", name: "Telugu", native: "తెలుగు", bcp47: "te-IN", category: "India", regionBadge: "IN" },
-  { code: "bn", name: "Bengali", native: "বাংলা", bcp47: "bn-IN", category: "India", regionBadge: "IN" },
-  { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", bcp47: "kn-IN", category: "India", regionBadge: "IN" },
-  { code: "ml", name: "Malayalam", native: "മലയാളം", bcp47: "ml-IN", category: "India", regionBadge: "IN" },
-  { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", bcp47: "pa-IN", category: "India", regionBadge: "IN" },
-  { code: "ur", name: "Urdu", native: "اردو", bcp47: "ur-IN", category: "India", regionBadge: "IN" },
-  { code: "or", name: "Odia", native: "ଓଡ଼ିଆ", bcp47: "or-IN", category: "India", regionBadge: "IN" },
-  { code: "as", name: "Assamese", native: "অসমীয়া", bcp47: "as-IN", category: "India", regionBadge: "IN" },
-  { code: "sa", name: "Sanskrit", native: "संस्कृतम्", bcp47: "sa-IN", category: "India", regionBadge: "IN" },
-  { code: "mai", name: "Maithili", native: "मैथिली", bcp47: "mai-IN", category: "India", regionBadge: "IN" },
-  { code: "ks", name: "Kashmiri", native: "कश्मीरी", bcp47: "ks-IN", category: "India", regionBadge: "IN" },
-  { code: "ne", name: "Nepali", native: "नेपाली", bcp47: "ne-IN", category: "India", regionBadge: "IN" },
-  { code: "sd", name: "Sindhi", native: "सिन्धी", bcp47: "sd-IN", category: "India", regionBadge: "IN" },
-  { code: "kok", name: "Konkani", native: "कोंकणी", bcp47: "kok-IN", category: "India", regionBadge: "IN" },
-  { code: "doi", name: "Dogri", native: "डोगरी", bcp47: "doi-IN", category: "India", regionBadge: "IN" },
-  { code: "mni", name: "Manipuri (Meitei)", native: "मणिपुरी", bcp47: "mni-IN", category: "India", regionBadge: "IN" },
-  { code: "brx", name: "Bodo", native: "बोडो", bcp47: "brx-IN", category: "India", regionBadge: "IN" },
-  { code: "sat", name: "Santali", native: "संथाली", bcp47: "sat-IN", category: "India", regionBadge: "IN" },
-
   // ── 30 African Languages (South Africa & Entire African Continent) ──
   { code: "en-ZA", name: "English (South Africa)", native: "English (SA)", bcp47: "en-ZA", category: "Africa", regionBadge: "ZA" },
   { code: "af", name: "Afrikaans", native: "Afrikaans", bcp47: "af-ZA", category: "Africa", regionBadge: "ZA" },
@@ -78,6 +53,31 @@ const ALL_LANGUAGES = [
   { code: "ff", name: "Fulani", native: "Fulfulde", bcp47: "ff-SN", category: "Africa", regionBadge: "AFRICA" },
   { code: "ak", name: "Twi (Akan)", native: "Twi", bcp47: "ak-GH", category: "Africa", regionBadge: "AFRICA" },
   { code: "wo", name: "Wolof", native: "Wolof", bcp47: "wo-SN", category: "Africa", regionBadge: "AFRICA" },
+
+  // ── 23 Indian Languages (All Official 22 8th Schedule Languages + English India) ──
+  { code: "en", name: "English (India)", native: "English", bcp47: "en-IN", category: "India", regionBadge: "IN" },
+  { code: "hi", name: "Hindi", native: "हिन्दी", bcp47: "hi-IN", category: "India", regionBadge: "IN" },
+  { code: "gu", name: "Gujarati", native: "ગુજરાતી", bcp47: "gu-IN", category: "India", regionBadge: "IN" },
+  { code: "mr", name: "Marathi", native: "मराठी", bcp47: "mr-IN", category: "India", regionBadge: "IN" },
+  { code: "ta", name: "Tamil", native: "தமிழ்", bcp47: "ta-IN", category: "India", regionBadge: "IN" },
+  { code: "te", name: "Telugu", native: "తెలుగు", bcp47: "te-IN", category: "India", regionBadge: "IN" },
+  { code: "bn", name: "Bengali", native: "বাংলা", bcp47: "bn-IN", category: "India", regionBadge: "IN" },
+  { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", bcp47: "kn-IN", category: "India", regionBadge: "IN" },
+  { code: "ml", name: "Malayalam", native: "മലയാളം", bcp47: "ml-IN", category: "India", regionBadge: "IN" },
+  { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", bcp47: "pa-IN", category: "India", regionBadge: "IN" },
+  { code: "ur", name: "Urdu", native: "اردو", bcp47: "ur-IN", category: "India", regionBadge: "IN" },
+  { code: "or", name: "Odia", native: "ଓଡ଼ିଆ", bcp47: "or-IN", category: "India", regionBadge: "IN" },
+  { code: "as", name: "Assamese", native: "অসমীয়া", bcp47: "as-IN", category: "India", regionBadge: "IN" },
+  { code: "sa", name: "Sanskrit", native: "संस्कृतम्", bcp47: "sa-IN", category: "India", regionBadge: "IN" },
+  { code: "mai", name: "Maithili", native: "मैथिली", bcp47: "mai-IN", category: "India", regionBadge: "IN" },
+  { code: "ks", name: "Kashmiri", native: "कश्मीरी", bcp47: "ks-IN", category: "India", regionBadge: "IN" },
+  { code: "ne", name: "Nepali", native: "नेपाली", bcp47: "ne-IN", category: "India", regionBadge: "IN" },
+  { code: "sd", name: "Sindhi", native: "सिन्धी", bcp47: "sd-IN", category: "India", regionBadge: "IN" },
+  { code: "kok", name: "Konkani", native: "कोंकणी", bcp47: "kok-IN", category: "India", regionBadge: "IN" },
+  { code: "doi", name: "Dogri", native: "डोगरी", bcp47: "doi-IN", category: "India", regionBadge: "IN" },
+  { code: "mni", name: "Manipuri (Meitei)", native: "मणिपुरी", bcp47: "mni-IN", category: "India", regionBadge: "IN" },
+  { code: "brx", name: "Bodo", native: "बोडो", bcp47: "brx-IN", category: "India", regionBadge: "IN" },
+  { code: "sat", name: "Santali", native: "संथाली", bcp47: "sat-IN", category: "India", regionBadge: "IN" },
 
   // ── 11 Global Languages ──
   { code: "es", name: "Spanish", native: "Español", bcp47: "es-ES", category: "Global", regionBadge: "GLOBAL" },
@@ -801,16 +801,16 @@ export default function VoiceAssistant() {
                   <Globe size={13} /> All
                 </button>
                 <button
-                  className={`${styles.tabBtn} ${activeTab === "India" ? styles.activeTab : ""}`}
-                  onClick={() => setActiveTab("India")}
-                >
-                  🇮🇳 India
-                </button>
-                <button
                   className={`${styles.tabBtn} ${activeTab === "Africa" ? styles.activeTab : ""}`}
                   onClick={() => setActiveTab("Africa")}
                 >
                   🌍 Africa
+                </button>
+                <button
+                  className={`${styles.tabBtn} ${activeTab === "India" ? styles.activeTab : ""}`}
+                  onClick={() => setActiveTab("India")}
+                >
+                  🇮🇳 India
                 </button>
                 <button
                   className={`${styles.tabBtn} ${activeTab === "Global" ? styles.activeTab : ""}`}
@@ -825,7 +825,7 @@ export default function VoiceAssistant() {
                 <input
                   type="text"
                   className={styles.searchInput}
-                  placeholder="Search language (Hindi, Gujarati, Zulu, Afrikaans, Swahili, Amharic...)"
+                  placeholder="Search language (English (SA), Afrikaans, Zulu, Hindi, Gujarati...)"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />

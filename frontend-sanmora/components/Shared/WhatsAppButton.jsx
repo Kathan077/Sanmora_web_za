@@ -81,28 +81,6 @@ export default function WhatsAppButton() {
 
               {/* Options Grid */}
               <div className={styles.locationGrid}>
-                {/* India Card */}
-                <button
-                  className={styles.locationCard}
-                  onClick={() =>
-                    handleLocationClick(
-                      "https://wa.me/918780005326?text=Hello%20Sanmora%20Team%2C%20I%20would%20like%20to%20inquire%20about%20your%20services%20towards%20the%20%22India%20branch%22."
-                    )
-                  }
-                >
-                  <div className={styles.cardContent}>
-                    <div className={styles.cardHeaderRow}>
-                      <span className={styles.locationName}>India Office</span>
-                    </div>
-                    <span className={styles.phoneText}>+91 87800 05326</span>
-                  </div>
-                  <div className={styles.cardArrow}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </div>
-                </button>
-
                 {/* South Africa Card */}
                 <button
                   className={styles.locationCard}
@@ -117,6 +95,28 @@ export default function WhatsAppButton() {
                       <span className={styles.locationName}>South Africa Office</span>
                     </div>
                     <span className={styles.phoneText}>+27 83 781 0032</span>
+                  </div>
+                  <div className={styles.cardArrow}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </button>
+
+                {/* India Card */}
+                <button
+                  className={styles.locationCard}
+                  onClick={() =>
+                    handleLocationClick(
+                      "https://wa.me/918780005326?text=Hello%20Sanmora%20Team%2C%20I%20would%20like%20to%20inquire%20about%20your%20services%20towards%20the%20%22India%20branch%22."
+                    )
+                  }
+                >
+                  <div className={styles.cardContent}>
+                    <div className={styles.cardHeaderRow}>
+                      <span className={styles.locationName}>India Office</span>
+                    </div>
+                    <span className={styles.phoneText}>+91 87800 05326</span>
                   </div>
                   <div className={styles.cardArrow}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
